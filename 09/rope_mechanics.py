@@ -2,36 +2,39 @@ import sys
 
 cmd_list = open("input.txt").read()
 
-head = [0,0]
-tail = [0,0]
+#head = [0,0]
+rope = []
+for i in range(10):
+    rope.append([0,0])
+print(len(rope),len(rope[0]))
 
-tail_locations = set(tail)
-
-def head_tail_adjacent():
-    return abs(head[0]-tail[0]) <= 1 and abs(head[1] - tail[1]) <= 1
+tail_locations = {tuple(rope[-1])}
+def segment_adjacent(seg):
+    return seg == 0 or abs(rope[seg-1][0]-rope[seg][0]) <= 1 and abs(rope[seg-1][1] - rope[seg][1]) <= 1
 
 def move_head(direction):
     if direction == "L":
-        head[0] -= 1
+        rope[0][0] -= 1
     elif direction == "R":
-        head[0] += 1
+        rope[0][0] += 1
     elif direction == "U":
-        head[1] += 1
+        rope[0][1] += 1
     elif direction == "D":
-        head[1] -= 1
+        rope[0][1] -= 1
 
 
 def move_tail():
-    if not head_tail_adjacent():
-        if head[0] - tail[0] > 0:
-            tail[0] += 1
-        elif head[0] - tail[0] < 0:
-            tail[0] -= 1
+    for segment in range(len(rope)):
+        if not segment_adjacent(segment):
+            if rope[segment-1][0] - rope[segment][0] > 0:
+                rope[segment][0] += 1
+            elif rope[segment-1][0] - rope[segment][0] < 0:
+                rope[segment][0] -= 1
 
-        if head[1] - tail[1] > 0:
-            tail[1] += 1
-        elif head[1] - tail[1] < 0:
-            tail[1] -= 1
+            if rope[segment-1][1] - rope[segment][1] > 0:
+                rope[segment][1] += 1
+            elif rope[segment-1][1] - rope[segment][1] < 0:
+                rope[segment][1] -= 1
 
 for line in cmd_list.split("\n"):
     direction,count = line.split(" ")
@@ -39,12 +42,13 @@ for line in cmd_list.split("\n"):
     while count > 0:
         move_head(direction)
         move_tail()
-        #print(head,tail)
-        if not head_tail_adjacent():
-            print("ERROR! Head and tail out of alignment!")
-            print(head,tail)
-            sys.exit()
-        tail_locations.add(tuple(tail))
+        #print(rope)
+        for segment in range(len(rope)):
+            if not segment_adjacent(segment):
+                print("ERROR! Head and tail out of alignment!")
+                print(rope)
+                sys.exit()
+        tail_locations.add(tuple(rope[-1]))
         count -= 1
 
-print(len(tail_locations))
+print(len(tail_locations))#,tail_locations)
