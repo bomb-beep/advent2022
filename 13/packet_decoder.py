@@ -1,5 +1,36 @@
 import regex as re
 
+debug = False
+
+class BinaryTree:
+	def __init__(self,value) -> None:
+		self.value = value
+		self.left = None
+		self.right = None
+
+	def insert(self,value):
+		r = compare(value,self.value)
+		if r == -1:
+			if self.left:
+				self.left.insert(value)
+			else:
+				self.left = BinaryTree(value)
+
+		elif r == 1:
+			if self.right:
+				self.right.insert(value)
+			else:
+				self.right = BinaryTree(value)
+
+	def list(self):
+		r = []
+		if self.left:
+			r += self.left.list()
+		r.append(self.value)
+		if self.right:
+			r += self.right.list()
+		return r
+
 def parse_packet(raw_packet):
 	# if not raw_packet:
 	# 	return None
@@ -39,6 +70,46 @@ def parse_packet(raw_packet):
 	
 	return packet
 
+def compare(left,right):
+	if debug:
+		print("enter compare",left,right)
+	result = 0
+	for i in range(len(left)):
+		#print("i",i)
+		try:
+			right[i]
+		except IndexError:
+			result = 1
+			break
+
+		if type(left[i]) == int and type(right[i])== int:
+			if debug:
+				print("compare int",left[i],right[i])
+			if left[i] < right[i]:
+				result = -1
+			elif left[i] > right[i]:
+				result = 1
+
+		elif type(left[i]) == list and type(right[i]) == list:
+			if debug:
+				print("compare list",left[i],right[i])
+			result = compare(left[i],right[i])
+
+		elif type(left[i]) == int:
+			if debug:
+				print("compare int list",left[i],right[i])
+			result = compare([left[i]],right[i])
+		
+		elif type(right[i]) == int:
+			if debug:
+				print("compare list int",left[i],right[i])
+			result = compare(left[i],[right[i]])
+		if result:
+			break
+	if not result and len(left) < len(right):
+		result = -1
+
+	return result
 	# m = re.search("(?P<head>[\d,]*)\[(?P<body>[\d,\[\]]*)\](?P<tail>[\d,\[\]]*)",raw_packet)
 	# if m:
 	# 	print("head {} body {} tail {}".format(m.group("head"),m.group("body"),m.group("tail")))
@@ -73,13 +144,33 @@ def parse_packet(raw_packet):
 
 packets = {}
 #packets = "[[1],[2,3,4]]\n[[1],4]"
+packet_list = []#[[[2]],[[6]]]
+test_packet = ["[9]\n[[8,7,6]]"]#["[[1],[2,3,4]]\n[[1],4]"]
 index = 1
 
-for pair in open("test_input.txt").read().split("\n\n"):
+for pair in open("input.txt").read().split("\n\n"):
 	#print(">",pair)
 	left,right = pair.split("\n")
 	#print(parse_packet(left)[0],parse_packet(right)[0])
 	packets[index] = (parse_packet(left)[0],parse_packet(right)[0])
+	packet_list += list(packets[index])
 	index += 1
 
-print(packets)
+tree = BinaryTree([[2]])
+tree.insert([[6]])
+for packet in packet_list:
+	tree.insert(packet)
+
+sorted_packets = tree.list()
+decoder_key = (sorted_packets.index([[2]])+1) * (sorted_packets.index([[6]])+1)
+#print(tree.list())
+# for leaf in tree.list():
+# 	print(leaf)
+
+total = 0
+for index,(left,right) in packets.items():
+	if compare(left,right) == -1:
+		total += index
+print(total)
+
+print(decoder_key)
