@@ -97,7 +97,7 @@ def adjacent_tiles(tile):
 	ret.remove(tile)
 	return ret
 
-for line in open("input.txt").read().strip().split("\n"):
+for line in open("test_input.txt").read().strip().split("\n"):
 	m = re.search("Sensor at x=(?P<sx>-?\d+), y=(?P<sy>-?\d+): closest beacon is at x=(?P<bx>-?\d+), y=(?P<by>-?\d+)",line)
 	if m:
 		print("sensor = {}, beacon = {}".format((m.group("sx"),m.group("sy")),(m.group("bx"),m.group("by"))))
@@ -133,8 +133,10 @@ for beacon in beacons:
 
 for sensor in sensors:
 	nearest_beacon(sensor)
-# nearest_beacon((8,7))
+# nearest_beacon((20,14))
+# nearest_beacon((12,14))
 
 print((xmin,grid.shape[0]+xmin),(ymin,grid.shape[1]+ymin))
 print_grid()
-print(len(grid[grid[:,2000000-ymin] != 0]) - len(grid[grid[:,2000000-ymin] == 3]))
+#print(len(grid[grid[:,2000000-ymin] != 0]) - len(grid[grid[:,2000000-ymin] == 3]))
+####B######################
