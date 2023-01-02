@@ -1,4 +1,4 @@
-import math,sys
+import math,sys,random
 import regex as re
 from itertools import permutations
 
@@ -53,12 +53,12 @@ class Valve:
 				pass
 
 class Traveler:
-	def __init__(self,start) -> None:
+	def __init__(self,start,time = 30) -> None:
 		self.queue = []
 		self.node = None
 		self.set_start(start)
 		self.path = []
-		self.time = 30
+		self.time = time
 		self.total_pressure = 0
 		self.valves = []
 		self.dest = None
@@ -71,14 +71,71 @@ class Traveler:
 		if type(self.node) == str:
 			self.node = valve_by_name(self.node)
 
+	def open_valve_step(self):
+		self.total_pressure += release_pressure()
+		weights = self.weight_valves(self.valves)
+		open_valve = False
+		move = False
+		
+		if not self.dest:
+			if weights:
+				self.dest = roll_by_weight(weights)
+				#print(self.dest)
+				self.valves.remove(self.dest)
+				weights = self.weight_valves(self.valves)
+				self.path.append(self.dest)
+				move = True
+			elif not self.node.open:
+				open_valve = True
+		else:
+			if self.dest == self.node:
+				if self.node.open and weights:
+					self.dest = roll_by_weight(weights)
+					#print(self.dest)
+					self.valves.remove(self.dest)
+					weights = self.weight_valves(self.valves)
+					self.path.append(self.dest)
+					move = True
+				elif not self.node.open:
+					open_valve = True
+
+			else:
+				move = True
+
+		if open_valve and move:
+			print("Error!")
+			return
+		elif open_valve:
+			if print_moves:
+				print(f"{self.time} minutes left. Open valve {self.node.name}. Release {release_pressure()}. Total pressure is {self.total_pressure}")
+			self.node.open = True
+		elif move:
+			self.node = self.node.roadsigns[self.dest.name]
+			if print_moves:
+				print(f"{self.time} minutes left. Move to valve {self.node.name}. Destination {self.dest.name}. Release {release_pressure()}. Total pressure is {self.total_pressure}")
+
+		else:
+			if print_moves:
+				print(f"{self.time} minutes left. Stay at valve {self.node.name}. Release {release_pressure()}. Total pressure is {self.total_pressure}")
+
+		self.time -= 1
+
+
 	def open_valves_by_weight(self,valves):
-		pass
+		self.valves = list(valves)
+
+		while self.time > 0:
+			self.open_valve_step()
+		close_valves()
+		return self.total_pressure, self.path
 
 	def weight_valves(self,valves):
 		weights = {}
 		for valve in valves:
 			if valve != self.node:
-				weights[valve] = valve.flow/self.node.distance[valve.name]
+				weights[valve] = int(valve.flow/self.node.distance[valve.name])
+				if weights[valve] == 0:
+					weights[valve] = 1
 		return weights
 
 	def open_valves_in_order(self,order = []):
@@ -169,6 +226,28 @@ class Traveler:
 
 		return edges
 
+def roll_by_weight(weights):
+	#print(type(weights),weights)
+	if type(weights) == dict:
+		weights = weights.copy()
+		roll = random.randint(1,int(sum(weights.values())))
+		total = 0
+	else:
+		roll = random.randint(1,sum(weights))
+	
+	i = 0
+	while i < len(weights):
+		if type(weights) == dict:
+			key,value = weights.popitem()
+			total += int(value)
+			if total >= roll:
+				return key
+		else:
+			if sum(weights[0:i+1]) >= roll:
+				return i
+			i += 1
+	print("Error!",roll,i)
+
 def get_names(nodes):
 	s = ""
 	for node in nodes:
@@ -201,7 +280,7 @@ def sort_valves():
 		
 	return sorted(ret,key = lambda x:x.flow,reverse = True)
 
-for line in open("test_input.txt").read().strip().split("\n"):
+for line in open("input.txt").read().strip().split("\n"):
 	m = re.search("Valve (?P<name>\w+) has flow rate=(?P<flow>\d+); tunnels? leads? to valves? (?P<connections>.+)",line)
 	if m:
 		valves.append(Valve(m.group("name"),m.group("flow"),m.group("connections")))
@@ -237,14 +316,48 @@ for node1 in valves:
 for valve,weight in Traveler("AA").weight_valves(sort_valves()).items():
 	print(valve.name,weight)
 
+greatest_total = 0
+greatest_order = []
+# for i in range(10000):
+# 	total,order = Traveler("AA").open_valves_by_weight(sort_valves())
+# 	if total > greatest_total:
+# 		greatest_total = total
+# 		greatest_order = order
+# 		print(total)
+for i in range(1000000):
+	time = 26
+	total_pressure = 0
+	traveler = Traveler("AA")
+	elephant = Traveler("AA")
+	traveler.set_valves(sort_valves())
+	elephant.set_valves(traveler.valves)
+	while time > 0:
+		total_pressure += release_pressure()
+		#print(traveler.dest,elephant.dest)
+		traveler.open_valve_step()
+		elephant.open_valve_step()
+		time -= 1
+	close_valves()
+	if total_pressure > greatest_total:
+		greatest_total = total_pressure
+		greatest_order = (traveler.path,elephant.path)
+		print(total_pressure)
+	#print("Traveler",total_pressure,get_names(traveler.path))
+	#print("Elephant",total_pressure,get_names(elephant.path))
 
-#sys.exit()
+print_moves = True
+print(get_names(greatest_order[0]))
+Traveler("AA",26).open_valves_in_order(greatest_order[0])
+print(get_names(greatest_order[1]))
+Traveler("AA",26).open_valves_in_order(greatest_order[1])
+
+print(greatest_total)
+sys.exit()
 print(len(sort_valves()),math.factorial(len(sort_valves())))
 all_permutations = permutations(sort_valves())
 
 #print(len(list(all_permutations)))
-greatest_total = 0
-greatest_order = []
+
 index = 0
 for perm in all_permutations:
 	total = Traveler("AA").open_valves_in_order(perm)
